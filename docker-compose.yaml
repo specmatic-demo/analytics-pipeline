@@ -1,0 +1,6 @@
+services:
+  my-app:
+    build: .
+    container_name: analytics-pipeline
+    restart: unless-stopped
+    network_mode: host
