@@ -3,10 +3,15 @@
   "version": "1.0.0",
   "private": true,
   "description": "Demo analytics query service",
-  "dependencies": {
-    "express": "^4.21.2"
-  },
   "scripts": {
-    "start": "node src/index.js"
+    "start": "tsx src/index.ts"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "tsx": "^4.20.5"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.23",
+    "@types/node": "^24.3.0"
   }
 }

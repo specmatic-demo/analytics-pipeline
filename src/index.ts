@@ -1,12 +1,10 @@
-'use strict';
-
-const express = require('express');
+import express, { type Request, type Response } from 'express';
 
 const app = express();
 const host = process.env.ANALYTICS_HOST || '0.0.0.0';
 const port = Number.parseInt(process.env.ANALYTICS_PORT || '9000', 10);
 
-function isValidDateString(value) {
+function isValidDateString(value: string): boolean {
   if (typeof value !== 'string') {
     return false;
   }
@@ -23,8 +21,8 @@ function isValidDateString(value) {
   return parsed.toISOString().slice(0, 10) === value;
 }
 
-app.get('/analytics/orders/daily-summary', (req, res) => {
-  const date = req.query.date;
+app.get('/analytics/orders/daily-summary', (req: Request, res: Response) => {
+  const date = typeof req.query.date === 'string' ? req.query.date : '';
   if (!isValidDateString(date)) {
     res.status(400).json({ error: 'Invalid or missing date query parameter' });
     return;
