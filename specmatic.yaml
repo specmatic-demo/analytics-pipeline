@@ -2,24 +2,8 @@ version: 3
 systemUnderTest:
   service:
     $ref: "#/components/services/analyticsPipeline"
-dependencies:
-  services:
-    - service:
-        $ref: "#/components/services/customerEvents"
-        runOptions:
-          $ref: "#/components/runOptions/customerEventsMock"
-    - service:
-        $ref: "#/components/services/orderEvents"
-        runOptions:
-          $ref: "#/components/runOptions/orderEventsMock"
-    - service:
-        $ref: "#/components/services/pricingEvents"
-        runOptions:
-          $ref: "#/components/runOptions/pricingEventsMock"
-    - service:
-        $ref: "#/components/services/notificationEvents"
-        runOptions:
-          $ref: "#/components/runOptions/notificationEventsMock"
+    runOptions:
+      $ref: "#/components/runOptions/analyticsPipeline"
 components:
   sources:
     centralContractRepo:
@@ -35,73 +19,16 @@ components:
             specs:
               - spec:
                   path: "contracts/services/analytics-pipeline/http/openapi.yaml"
-    customerEvents:
-      description: "Customer Service events dependency"
-      definitions:
-        - definition:
-            source:
-              $ref: "#/components/sources/centralContractRepo"
-            specs:
-              - spec:
-                  path: "contracts/services/customer-service/events/asyncapi.yaml"
-    orderEvents:
-      description: "Order Service events dependency"
-      definitions:
-        - definition:
-            source:
-              $ref: "#/components/sources/centralContractRepo"
-            specs:
-              - spec:
-                  path: "contracts/services/order-service/events/asyncapi.yaml"
-    pricingEvents:
-      description: "Pricing Service events dependency"
-      definitions:
-        - definition:
-            source:
-              $ref: "#/components/sources/centralContractRepo"
-            specs:
-              - spec:
-                  path: "contracts/services/pricing-service/events/asyncapi.yaml"
-    notificationEvents:
-      description: "Notification Service events dependency"
-      definitions:
-        - definition:
-            source:
-              $ref: "#/components/sources/centralContractRepo"
-            specs:
               - spec:
                   path: "contracts/services/notification-service/events/asyncapi.yaml"
   runOptions:
-    customerEventsMock:
+    analyticsPipeline:
+      openapi:
+        type: test
+        host: localhost
+        port: 9000
       asyncapi:
-        type: mock
-        inMemoryBroker:
-          host: localhost
-          port: 5401
-        servers:
-          - host: "localhost:5401"
-            protocol: kafka
-    orderEventsMock:
-      asyncapi:
-        type: mock
-        inMemoryBroker:
-          host: localhost
-          port: 5401
-        servers:
-          - host: "localhost:5401"
-            protocol: kafka
-    pricingEventsMock:
-      asyncapi:
-        type: mock
-        inMemoryBroker:
-          host: localhost
-          port: 5401
-        servers:
-          - host: "localhost:5401"
-            protocol: kafka
-    notificationEventsMock:
-      asyncapi:
-        type: mock
+        type: test
         servers:
           - host: tcp://localhost:1883
             protocol: mqtt
