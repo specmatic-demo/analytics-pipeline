@@ -52,7 +52,7 @@ components:
               $ref: "#/components/sources/centralContractRepo"
             specs:
               - spec:
-                  path: "contracts/services/order-service/events/kafka-asyncapi.yaml"
+                  path: "contracts/services/order-service/events/asyncapi.yaml"
     pricingEvents:
       description: "Pricing Service events dependency"
       definitions:
@@ -70,7 +70,7 @@ components:
               $ref: "#/components/sources/centralContractRepo"
             specs:
               - spec:
-                  path: "contracts/services/notification-service/events/mqtt-asyncapi.yaml"
+                  path: "contracts/services/notification-service/events/asyncapi.yaml"
   runOptions:
     customerEventsMock:
       asyncapi:
@@ -86,7 +86,7 @@ components:
         type: mock
         inMemoryBroker:
           host: localhost
-          port: 5402
+          port: 5401
         servers:
           - host: "localhost:5401"
             protocol: kafka
@@ -95,7 +95,7 @@ components:
         type: mock
         inMemoryBroker:
           host: localhost
-          port: 5403
+          port: 5401
         servers:
           - host: "localhost:5401"
             protocol: kafka
