@@ -1,5 +1,11 @@
 import express, { type Request, type Response } from 'express';
 import mqtt, { type MqttClient } from 'mqtt';
+import type {
+  NotificationDeliveryAckEvent,
+  NotificationStats,
+  TrendInterval,
+  UserNotificationEvent
+} from './types';
 
 const app = express();
 const host = process.env.ANALYTICS_HOST || '0.0.0.0';
@@ -8,32 +14,6 @@ const mqttUrl = process.env.ANALYTICS_MQTT_URL || 'mqtt://localhost:1883';
 const userNotificationTopic = process.env.NOTIFICATION_USER_TOPIC || 'notification/user';
 const notificationAckTopic = process.env.NOTIFICATION_ACK_TOPIC || 'notification/ack';
 const trendIntervals = new Set(['DAY', 'WEEK', 'MONTH']);
-
-type TrendInterval = 'DAY' | 'WEEK' | 'MONTH';
-type NotificationPriority = 'LOW' | 'NORMAL' | 'HIGH';
-type AckStatus = 'DELIVERED' | 'FAILED';
-
-type UserNotificationEvent = {
-  notificationId: string;
-  requestId: string;
-  title: string;
-  body: string;
-  priority: NotificationPriority;
-};
-
-type NotificationDeliveryAckEvent = {
-  requestId: string;
-  notificationId: string;
-  acknowledgedAt: string;
-  status: AckStatus;
-  failureReason?: string;
-};
-
-type NotificationStats = {
-  received: number;
-  ackDelivered: number;
-  ackFailed: number;
-};
 
 const notificationStats: NotificationStats = {
   received: 0,
