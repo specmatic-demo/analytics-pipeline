@@ -16,10 +16,6 @@ dependencies:
         $ref: "#/components/services/pricingEvents"
         runOptions:
           $ref: "#/components/runOptions/pricingEventsMock"
-    - service:
-        $ref: "#/components/services/notificationEvents"
-        runOptions:
-          $ref: "#/components/runOptions/notificationEventsMock"
 components:
   sources:
     centralContractRepo:
@@ -35,6 +31,8 @@ components:
             specs:
               - spec:
                   path: "contracts/services/analytics-pipeline/http/openapi.yaml"
+              - spec:
+                  path: "contracts/services/notification-service/events/mqtt-asyncapi.yaml"
     customerEvents:
       description: "Customer Service events dependency"
       definitions:
@@ -62,15 +60,6 @@ components:
             specs:
               - spec:
                   path: "contracts/services/pricing-service/events/asyncapi.yaml"
-    notificationEvents:
-      description: "Notification Service events dependency"
-      definitions:
-        - definition:
-            source:
-              $ref: "#/components/sources/centralContractRepo"
-            specs:
-              - spec:
-                  path: "contracts/services/notification-service/events/mqtt-asyncapi.yaml"
   runOptions:
     customerEventsMock:
       asyncapi:
@@ -99,9 +88,3 @@ components:
         servers:
           - host: "localhost:5401"
             protocol: kafka
-    notificationEventsMock:
-      asyncapi:
-        type: mock
-        servers:
-          - host: tcp://localhost:1883
-            protocol: mqtt
