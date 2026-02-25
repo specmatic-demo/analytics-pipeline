@@ -70,7 +70,7 @@ components:
               $ref: "#/components/sources/centralContractRepo"
             specs:
               - spec:
-                  path: "contracts/services/notification-service/events/kafka-asyncapi.yaml"
+                  path: "contracts/services/notification-service/events/mqtt-asyncapi.yaml"
   runOptions:
     customerEventsMock:
       asyncapi:
@@ -102,9 +102,6 @@ components:
     notificationEventsMock:
       asyncapi:
         type: mock
-        inMemoryBroker:
-          host: localhost
-          port: 5404
         servers:
-          - host: "localhost:5401"
-            protocol: kafka
+          - host: tcp://localhost:1883
+            protocol: mqtt
