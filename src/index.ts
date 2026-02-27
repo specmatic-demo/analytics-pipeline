@@ -1,5 +1,5 @@
 import express, { type Request, type Response } from 'express';
-import mqtt, { type MqttClient } from 'mqtt';
+import { Kafka, type Consumer } from 'kafkajs';
 import type {
   NotificationDeliveryAckEvent,
   NotificationStats,
@@ -10,10 +10,20 @@ import type {
 const app = express();
 const host = process.env.ANALYTICS_HOST || '0.0.0.0';
 const port = Number.parseInt(process.env.ANALYTICS_PORT || '9000', 10);
-const mqttUrl = process.env.ANALYTICS_MQTT_URL || 'mqtt://localhost:1883';
-const userNotificationTopic = process.env.NOTIFICATION_USER_TOPIC || 'notification/user';
-const notificationAckTopic = process.env.NOTIFICATION_ACK_TOPIC || 'notification/ack';
+const kafkaBrokers = (process.env.ANALYTICS_KAFKA_BROKERS || 'localhost:9092')
+  .split(',')
+  .map((value) => value.trim())
+  .filter(Boolean);
+const userNotificationTopic = process.env.NOTIFICATION_USER_TOPIC || 'notification.user';
+const notificationAckTopic = process.env.NOTIFICATION_ACK_TOPIC || 'notification.ack';
+const analyticsConsumerGroup = process.env.ANALYTICS_CONSUMER_GROUP || 'analytics-pipeline-group';
 const trendIntervals = new Set(['DAY', 'WEEK', 'MONTH']);
+
+const kafka = new Kafka({
+  clientId: 'analytics-pipeline',
+  brokers: kafkaBrokers
+});
+const consumer: Consumer = kafka.consumer({ groupId: analyticsConsumerGroup });
 
 const notificationStats: NotificationStats = {
   received: 0,
@@ -102,61 +112,53 @@ function parseJsonPayload(buffer: Buffer): unknown | null {
   }
 }
 
-function startNotificationMqttListener(): MqttClient {
-  const client = mqtt.connect(mqttUrl, { reconnectPeriod: 1000 });
+async function startNotificationKafkaListener(): Promise<void> {
+  await consumer.connect();
+  await consumer.subscribe({ topic: userNotificationTopic, fromBeginning: false });
+  await consumer.subscribe({ topic: notificationAckTopic, fromBeginning: false });
+  console.log(`analytics-pipeline connected to Kafka broker at ${kafkaBrokers.join(',')}`);
+  console.log(
+    `analytics-pipeline subscribed to Kafka topics: ${userNotificationTopic}, ${notificationAckTopic}`
+  );
 
-  client.on('connect', () => {
-    console.log(`analytics-pipeline connected to MQTT broker at ${mqttUrl}`);
-    client.subscribe([userNotificationTopic, notificationAckTopic], (error?: Error | null) => {
-      if (error) {
-        console.error(`analytics-pipeline failed to subscribe MQTT topics: ${error.message}`);
+  await consumer.run({
+    eachMessage: async ({ topic, message }) => {
+      if (!message.value) {
         return;
       }
 
-      console.log(
-        `analytics-pipeline subscribed to MQTT topics: ${userNotificationTopic}, ${notificationAckTopic}`
-      );
-    });
-  });
-
-  client.on('message', (topic: string, payload: Buffer) => {
-    const parsed = parseJsonPayload(payload);
-    if (parsed === null) {
-      console.error(`analytics-pipeline received non-JSON MQTT payload on topic ${topic}`);
-      return;
-    }
-
-    if (topic === userNotificationTopic) {
-      const event = parseUserNotification(parsed);
-      if (!event) {
-        console.error(`analytics-pipeline received invalid UserNotification payload on ${topic}`);
+      const parsed = parseJsonPayload(message.value);
+      if (parsed === null) {
+        console.error(`analytics-pipeline received non-JSON payload on topic ${topic}`);
         return;
       }
 
-      notificationStats.received += 1;
-      return;
-    }
+      if (topic === userNotificationTopic) {
+        const event = parseUserNotification(parsed);
+        if (!event) {
+          console.error(`analytics-pipeline received invalid UserNotification payload on ${topic}`);
+          return;
+        }
 
-    if (topic === notificationAckTopic) {
-      const event = parseDeliveryAck(parsed);
-      if (!event) {
-        console.error(`analytics-pipeline received invalid NotificationDeliveryAck payload on ${topic}`);
+        notificationStats.received += 1;
         return;
       }
 
-      if (event.status === 'DELIVERED') {
-        notificationStats.ackDelivered += 1;
-      } else {
-        notificationStats.ackFailed += 1;
+      if (topic === notificationAckTopic) {
+        const event = parseDeliveryAck(parsed);
+        if (!event) {
+          console.error(`analytics-pipeline received invalid NotificationDeliveryAck payload on ${topic}`);
+          return;
+        }
+
+        if (event.status === 'DELIVERED') {
+          notificationStats.ackDelivered += 1;
+        } else {
+          notificationStats.ackFailed += 1;
+        }
       }
     }
   });
-
-  client.on('error', (error: Error) => {
-    console.error(`analytics-pipeline MQTT error: ${error.message}`);
-  });
-
-  return client;
 }
 
 app.get('/analytics/orders/daily-summary', (req: Request, res: Response) => {
@@ -222,17 +224,11 @@ app.get('/analytics/customers/tier-distribution', (req: Request, res: Response) 
   });
 });
 
-const mqttClient = startNotificationMqttListener();
+void startNotificationKafkaListener().catch((error: unknown) => {
+  const message = error instanceof Error ? error.message : String(error);
+  console.error(`analytics-pipeline Kafka error: ${message}`);
+});
 
 app.listen(port, host, () => {
   console.log(`analytics-pipeline listening on http://${host}:${port}`);
 });
-
-function shutdown(): void {
-  mqttClient.end(true, () => {
-    process.exit(0);
-  });
-}
-
-process.once('SIGINT', shutdown);
-process.once('SIGTERM', shutdown);
