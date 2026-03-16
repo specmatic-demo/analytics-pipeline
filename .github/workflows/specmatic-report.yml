@@ -33,9 +33,13 @@ jobs:
       - name: Run tests and send report
         if: github.ref == 'refs/heads/main'
         run: |
-          export SEND_REPORT=true
           if [ $((RANDOM % 2)) -eq 0 ]; then
             GENERATIVE_TESTS=true ./ci.sh .
           else
             ./ci.sh .
           fi
+          java -jar ~/.specmatic/specmatic-enterprise.jar send-report \
+            --repo-id="${{ github.event.repository.id }}" \
+            --repo-name="${{ github.event.repository.name }}" \
+            --repo-url="${{ github.server_url }}/${{ github.repository }}" \
+            --branch-name="${{ github.ref_name }}"
