@@ -25,6 +25,7 @@ components:
     analyticsPipeline:
       openapi:
         type: test
+        filter: "${FILTER:STATUS >= '0'}"
         host: localhost
         port: 9000
       asyncapi:
